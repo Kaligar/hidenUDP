@@ -1,21 +1,33 @@
+import cv2
 import socket
 import struct
+import pickle
 
-def send_data_in_chunks(client_socket, data, server_ip, port, max_packet_size=65507):
-    # El tamaño máximo del paquete UDP es 65535, y tenemos que restar el tamaño de la cabecera UDP (28 bytes)
-    chunk_size = max_packet_size - 28  # 65507 bytes disponibles para los datos
+SERVER_IP = "192.168.1.100"  # Cambia por la IP del servidor
+PORT = 9999
 
-    # Fragmentar los datos en trozos más pequeños
-    for i in range(0, len(data), chunk_size):
-        chunk = data[i:i + chunk_size]
-        packet = struct.pack("Q", len(data)) + chunk  # Prepend the total length of the data
-        client_socket.sendto(packet, (server_ip, port))
+# Inicializa la cámara
+cap = cv2.VideoCapture(0)
 
-# Creación del socket UDP
-client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+# Configura el socket
+client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client_socket.connect((SERVER_IP, PORT))
 
-SERVER_IP = '127.0.0.1'
-PORT = 12345
-data = b'... tu dato muy largo ...'
+try:
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
 
-send_data_in_chunks(client_socket, data, SERVER_IP, PORT)
+        # Serializa el fotograma
+        data = pickle.dumps(frame)
+        message_size = struct.pack("Q", len(data))
+
+        # Envía el tamaño y el fotograma serializado
+        client_socket.sendall(message_size + data)
+
+except KeyboardInterrupt:
+    print("\nCerrando conexión...")
+finally:
+    cap.release()
+    client_socket.close()

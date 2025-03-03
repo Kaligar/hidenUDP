@@ -3,7 +3,7 @@ import socket
 import struct
 import pickle
 
-SERVER_IP = "192.168.1.10"  # Cambia por la IP del servidor
+SERVER_IP = "127.0.0.1"  # Cambia por la IP del servidor
 PORT = 9999
 
 # Inicializa la cámara

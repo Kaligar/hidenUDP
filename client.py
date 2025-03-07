@@ -3,31 +3,25 @@ import socket
 import struct
 import pickle
 
-SERVER_IP = "127.0.0.1"  # Cambia por la IP del servidor
+HOST = '127.0.0.1'  # Localhost
 PORT = 9999
 
-# Inicializa la cámara
+client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client_socket.connect((HOST, PORT))
 cap = cv2.VideoCapture(0)
 
-# Configura el socket
-client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client_socket.connect((SERVER_IP, PORT))
+while cap.isOpened():
+    ret, frame = cap.read()
+    if not ret:
+        break
 
-try:
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            break
+    data = pickle.dumps(frame)
+    message_size = struct.pack("Q", len(data))
+    client_socket.sendall(message_size + data)
 
-        # Serializa el fotograma
-        data = pickle.dumps(frame)
-        message_size = struct.pack("Q", len(data))
+    if cv2.waitKey(1) & 0xFF == ord("q"):
+        break
 
-        # Envía el tamaño y el fotograma serializado
-        client_socket.sendall(message_size + data)
-
-except KeyboardInterrupt:
-    print("\nCerrando conexión...")
-finally:
-    cap.release()
-    client_socket.close()
+cap.release()
+client_socket.close()
+cv2.destroyAllWindows()
